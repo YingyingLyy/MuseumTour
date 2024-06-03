@@ -1,0 +1,1179 @@
+﻿<krpano version="1.21" title="Virtual Tour">
+
+	<include url="skin/vtourskin.xml" />
+	<include url="plugins/depthmap_navigation.xml" />
+	<include url="plugins/showtext.xml"/>
+
+
+
+	    <!-- startup action - load the first scene -->
+	<events name="tourevents" keep="true" onxmlcomplete="setup_first_scene();"/>    
+	<action name="setup_first_scene" scope="local">
+		set(view, tx=get(image.ox), ty=get(image.oy), tz=get(image.oz)); 
+		set(events[tourevents].onxmlcomplete, null); set(events[tourevents].onloadcomplete) );
+	</action>    
+	<action name="startup" autorun="onstart">
+		if(startscene === null OR !scene[get(startscene)], copy(startscene,scene[0].name); ); 
+		loadscene(get(startscene), null, MERGE); if(startactions !== null, startactions() );
+	</action>
+
+
+
+
+
+	<!-- 3D Transition  -->
+	<action name="tour3d_loadscene" scope="local" args="scenename,hlookat,fov">
+		loadscene(get(scenename), null, MERGE|KEEPVIEW|KEEPMOVING, BLEND(1.0));
+		if (global.customtransition != 'SKIP', if(global.customtransition !== null, global.customtransition(); , 
+		tween(view.tx|view.ty|view.tz, calc(image.ox + '|' + image.oy + '|' + image.oz), 2.0, easeinoutsine); ); ); 
+		delete(global.customtransition); delete(global.customtransitiontime); 
+	</action>
+
+<!--stlye-->
+
+
+
+<!-- HsS hotspotstyle  -->
+	<style name="MyStyle" type="text"
+		alpha="0.5"
+		onover.addevent="tween(scale,0.55, 0.2); tween(alpha,1.0, 0.2);"
+		onout.addevent="tween(scale,0.5); tween(alpha,0.5);"
+    />
+
+
+
+
+
+
+
+	<!-- customize skin settings: maps, gyro, webvr, thumbnails, tooltips, layout, design, ... -->
+	<skin_settings maps="false"
+	               maps_type="google"
+	               maps_bing_api_key=""
+	               maps_google_api_key=""
+	               maps_zoombuttons="false"
+	               maps_loadonfirstuse="true"
+	               gyro="true"
+	               gyro_keeplookingdirection="false"
+	               webvr="true"
+	               webvr_keeplookingdirection="true"
+	               webvr_prev_next_hotspots="true"
+	               autotour="false"
+	               littleplanetintro="false"
+	               followmousecontrol="false"
+	               title="true"
+	               thumbs="true"
+	               thumbs_width="120" thumbs_height="80" thumbs_padding="10" thumbs_crop="0|40|240|160"
+	               thumbs_opened="false"
+	               thumbs_text="false"
+	               thumbs_dragging="true"
+	               thumbs_onhoverscrolling="false"
+	               thumbs_scrollbuttons="false"
+	               thumbs_scrollindicator="false"
+	               thumbs_loop="false"
+	               tooltips_buttons="false"
+	               tooltips_thumbs="false"
+	               tooltips_hotspots="false"
+	               tooltips_mapspots="false"
+	               deeplinking="false"
+	               loadscene_flags="MERGE"
+	               loadscene_blend="OPENBLEND(0.5, 0.0, 0.75, 0.05, linear)"
+	               loadscene_blend_prev="SLIDEBLEND(0.5, 180, 0.75, linear)"
+	               loadscene_blend_next="SLIDEBLEND(0.5,   0, 0.75, linear)"
+	               loadingtext=""
+	               layout_width="100%"
+	               layout_maxwidth="814"
+	               controlbar_width="-24"
+	               controlbar_height="40"
+	               controlbar_offset="20"
+	               controlbar_offset_closed="-40"
+	               controlbar_overlap.no-fractionalscaling="10"
+	               controlbar_overlap.fractionalscaling="0"
+	               design_skin_images="vtourskin.png"
+	               design_bgcolor="0x2D3E50"
+	               design_bgalpha="0.8"
+	               design_bgborder="0"
+	               design_bgroundedge="1"
+	               design_bgshadow="0 4 10 0x000000 0.3"
+	               design_thumbborder_bgborder="3 0xFFFFFF 1.0"
+	               design_thumbborder_padding="2"
+	               design_thumbborder_bgroundedge="0"
+	               design_text_css="color:#FFFFFF; font-family:Arial;"
+	               design_text_shadow="1"
+	               />
+
+	<!--
+	    For an alternative skin design either change the <skin_settings> values 
+	    from above or optionally include one of the predefined designs from below.
+	-->
+	<!-- <include url="skin/vtourskin_design_flat_light.xml"  /> -->
+	<!-- <include url="skin/vtourskin_design_glass.xml"       /> -->
+	<!-- <include url="skin/vtourskin_design_ultra_light.xml" /> -->
+	<!-- <include url="skin/vtourskin_design_117.xml"         /> -->
+	<!-- <include url="skin/vtourskin_design_117round.xml"    /> -->
+	<!-- <include url="skin/vtourskin_design_black.xml"       /> -->
+	
+	<action name="draghotspot">
+    	spheretoscreen(ath, atv, hotspotcenterx, hotspotcentery, calc(mouse.stagex LT stagewidth/2 ? 'l' : 'r'));
+    	sub(drag_adjustx, mouse.stagex, hotspotcenterx);
+    	sub(drag_adjusty, mouse.stagey, hotspotcentery);
+    	asyncloop(pressed,
+      		sub(dx, mouse.stagex, drag_adjustx);
+     		sub(dy, mouse.stagey, drag_adjusty);
+      		screentosphere(dx, dy, ath, atv);
+      		print_hotspot_pos();
+			
+      	);
+	</action>
+  
+	<action name="print_hotspot_pos"><![CDATA[
+    	copy(print_ath, ath);
+		copy(print_atv, atv);
+    	roundval(print_ath, 3);
+    	roundval(print_atv, 3);
+    	calc(plugin[hotspot_pos_info].html, '&lt;hotspot name="' + name + '"[br]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...[br]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ath="' + print_ath + '"[br]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;atv="' + print_atv + '"[br]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;...[br]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/&gt;');
+  		]]>
+  	</action>
+
+
+	<!--加载场景-->
+	<action name="skin_loadscene" scope="local" args="newscenenameorindex, blendmode">
+    	if(webvr.isenabled AND scene.count GT 1,
+      		set(hotspot[skin_webvr_prev_scene].visible, false);
+      		set(hotspot[skin_webvr_next_scene].visible, false);
+    	);
+
+    	calc(layer[skin_thumbborder].parent, 'skin_thumb_' + scene[get(newscenenameorindex)].index);
+    <!-- layer[skin_thumbs].scrolltocenter(get(scene[get(newscenenameorindex)].thumbx), get(scene[get(newscenenameorindex)].thumby)); -->
+    	loadscene(get(scene[get(newscenenameorindex)].name), null, get(skin_settings.loadscene_flags), get(blendmode));
+  	</action>
+
+	<!--切换场景-->
+ 	<action name="skin_gotoscene" scope="local" args="newscene,dx,dy,dz">
+		set3dtransition("world", dx,dy,dz,0);
+    	if(scene[get(newscene)],
+      		copy(cursceneindex, scene[get(xml.scene)].index);
+      		copy(newsceneindex, scene[get(newscene)].index);
+      		skin_loadscene(get(newsceneindex), 'ZOOMBLEND(1.0, 1.0, easeInOutSine)')) );
+    	);
+  	</action>
+
+	<!--显示文字-->
+<action name="add_all_the_time_tooltip">
+        txtadd(tooltipname, 'tooltip_', get(name));
+        addplugin(get(tooltipname));
+        txtadd(plugin[get(tooltipname)].parent, 'hotspot[', get(name), ']');
+        set(plugin[get(tooltipname)].url,'%SWFPATH%/plugins/textfield.swf');
+        set(plugin[get(tooltipname)].align,top);
+        set(plugin[get(tooltipname)].edge,bottom);
+        set(plugin[get(tooltipname)].x,0);
+        set(plugin[get(tooltipname)].y,0);
+        set(plugin[get(tooltipname)].autowidth,true);
+        set(plugin[get(tooltipname)].autoheight,true);
+        set(plugin[get(tooltipname)].vcenter,true);
+        set(plugin[get(tooltipname)].background,true);
+        set(plugin[get(tooltipname)].backgroundcolor,0x000000);
+        set(plugin[get(tooltipname)].roundedge,5);
+        set(plugin[get(tooltipname)].backgroundalpha,0.65);
+        set(plugin[get(tooltipname)].padding,5);
+        set(plugin[get(tooltipname)].border,false);
+        set(plugin[get(tooltipname)].glow,0);
+        set(plugin[get(tooltipname)].glowcolor,0xFFFFFF);
+        set(plugin[get(tooltipname)].css,'text-align:center; color:#FFFFFF; font-family:MicrosoftYahei;  font-size:24px;');
+        if(device.mobile,set(plugin[get(tooltipname)].css,'text-align:center; color:#FFFFFF; font-family:MicrosoftYahei; font-weight:bold; font-size:24px;');
+            );
+        set(plugin[get(tooltipname)].textshadow,0);
+        set(plugin[get(tooltipname)].textshadowrange,6.0);
+        set(plugin[get(tooltipname)].textshadowangle,90);
+        if(text == '' OR text === null,
+        copy(plugin[get(tooltipname)].html,scene[get(linkedscene)].title),
+        copy(plugin[get(tooltipname)].html,text)
+        );    
+        set(plugin[get(tooltipname)].enabled,false);
+</action>
+
+
+
+
+	<!--热点动画-->
+
+	<action name="float_animation">
+    	def(val, number, 0);
+    	def(max, number, 0.1);
+    	def(flag, boolean, true);
+
+    	setinterval(
+      		calc('val' + caller.name),
+      		0.05,
+      		inc(val, 0.01);
+      	if (flag,
+        	set(ath, calc(ath + val));
+       		set(atv, calc(atv + val));
+        	,
+        	set(ath, calc(ath - val));
+        	set(atv, calc(atv - val));
+      	);
+      	if (val GE max, set(flag, calc(!get(flag)));set(val, 0));
+    	);
+  	</action>
+
+<!--音频播放-->
+
+<plugin name="soundinterface"
+        url.flash="%VIEWER%/plugins/soundinterface.swf"
+        url.html5="%VIEWER%/plugins/soundinterface.js"
+        rootpath=""
+        preload="true"
+        keep="true"
+        />
+		<!-- 持续播放音乐 -->
+
+
+		<!--
+
+		<action name="bgsnd_action" autorun="onstart">
+				playsound(bgtour, '%VIEWER%/sound/游览.mp3', 1);
+		</action>
+
+		bgsnd代表声音的id,只要和其他声音的id不冲突就行
+		%VIEWER%/sound/760799654.mp3:声音的路径
+		0代表循环播放,1代表只播放一遍
+		tour3d_loadscene(scene_017)
+		skin_gotoscene('scene_017')
+		-->
+
+<!--热点动画-->
+
+
+
+
+<!--场景014-->
+	<scene name="scene_014" title="014" onstart="" thumburl="panos/014.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/014.tiles/preview.jpg" />
+
+
+		<!--前进17 onclick="tour3d_loadscene(scene_017)" -->
+		<hotspot
+      		name="spot1" ath="40.037" atv="22.627" style="skin_hotspotstyle"
+      		url="skin/vtourskin_hotspot.png"
+			onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+			zoom="true"
+			scale="0.6"
+			onclick="skin_gotoscene(scene_017,10.6,0,3.6);"
+			linkedscene="scene_017"
+			zorder="100"
+			text="前进"
+			
+    	/>
+
+	<!--视频热点 -->
+		<hotspot name="videospot"
+					url.html5="%SWFPATH%/plugins/videoplayer.js"
+					url.flash="%SWFPATH%/plugins/videoplayer.swf"
+					videourl="./video/introduction.mp4"
+					posterurl="./images/poster.png"
+					distorted="true"
+					ath="122.18"
+					atv="0.028"
+					edge="center"
+					scale="0.4"
+					rx="0"
+					ry="0"
+					rz="0"
+					ox="0"
+					oy="0"
+					loop="true"
+					pausedonstart="true"
+					
+					onclick="togglepause();"
+					/>
+
+		<!--讲解员-->
+		<hotspot
+      		name="spot2" ath="-9.275" atv="14.863" 
+      		url="skin/日和.gif"
+			onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+			zoom="true"
+			scale="0.3"
+			onclick="playsound(bgtour, '%VIEWER%/sound/墙体视频.mp3', 1);"
+    	/>
+		
+		<style name="skin_hotspotstyle" url="./images/enter.png" crop="0|0|128|112"
+			framewidth="128" frameheight="112" frame="0" lastframe="4" scale="0.5"
+			oy="50" onloaded="hotspot_animate();add_all_the_time_tooltip(get(linkedscene),1));"
+		/>
+
+
+
+		<image style = "014_STYLE">
+			<cube url="panos/014.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+			<depthmap url="models/pano014.stl" enabled="true" rendermode="3dmodel" scale="100"/>
+		</image>
+
+	</scene>
+
+<!--场景017 -->
+	<scene name="scene_017" title="017" onstart="" thumburl="panos/017.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/017.tiles/preview.jpg" />
+
+		<image style = "017_STYLE">
+			<cube url="panos/017.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840"  />
+			<depthmap url="models/pano017.stl" enabled="true" rendermode="3dmodel" scale="100" />
+		</image>
+
+
+		<!--热点管理-->
+			<!--返回14-->
+				<hotspot
+      				name="spot1" ath="-56.673" atv="28.76"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="tour3d_loadscene(scene_014)"
+					zorder="100"
+					linkedscene="scene_014"
+					text="返回"
+    			/>
+			<!--前进21 onclick="tour3d_loadscene('scene_021')"-->
+				<hotspot
+      				name="spot2" ath="76.075" atv="25.928"  style="skin_hotspotstyle"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="tour3d_loadscene(scene_021)"
+					zorder="100"
+					linkedscene="scene_021"
+					text="前进"
+    			/>
+			<!--图文介绍：多元钱币-->
+				<hotspot
+      				name="spot3" ath="-176.718" atv="-26.31"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/多元钱币.png'););"
+					
+    			/>
+			<!--图文介绍：二体钱-->
+				<hotspot
+      				name="spot4" ath="-144.765" atv="-19.168"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.3"
+					onclick="js(openImage('./images/和田马钱.png'););"
+				
+    			/>
+			<!--讲解员-->
+			<hotspot
+      			name="spot5" ath="-9.275" atv="14.863" 
+      			url="skin/日和.gif"
+				onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+				zoom="true"
+				scale="0.3"
+				onclick="playsound(bgtour, '%VIEWER%/sound/钱币增大.mp3', 1);"
+    		/>
+
+				<action name="bgsnd_action" autorun="onstart">
+					playsound(bgtour, '%VIEWER%/sound/钱币增大.mp3', 1);
+				</action>
+	</scene>
+
+
+<!--场景021-->
+	<scene name="scene_021" title="021" onstart="" thumburl="panos/021.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/021.tiles/preview.jpg" />
+
+		<image style = "021_STYLE">
+			<cube url="panos/021.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+			<depthmap url="models/pano021.stl" enabled="true" rendermode="3dmodel" scale="100"/>
+		</image>
+
+		<!--热点管理-->
+			<!--返回17-->
+				<hotspot
+      				name="spot1" ath="-100.661" atv="35.072"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene(scene_017,15.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_017"
+					text="返回"
+    			/>
+			<!--前进25-->
+				<hotspot
+      				name="spot2" ath="48.883" atv="31.477"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene(scene_025,15.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_025"
+					text="前进"
+    			/>
+				<!--图文介绍：琉璃-->
+				<hotspot
+      				name="spot3" ath="-149.076" atv="-9.023"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/琉璃.png'););"
+					
+    			/>
+			<!--讲解员-->
+				<hotspot
+      				name="spot521" ath="79.944" atv="14.599"
+      				url="skin/日和.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.3"
+					onclick="playsound(bgtour, '%VIEWER%/sound/玻璃.mp3', 1);"
+    			/>
+				<action name="bgsnd_action" autorun="onstart">
+					playsound(bgtour, '%VIEWER%/sound/玻璃.mp3', 1);
+				</action>
+	</scene>
+	
+
+<!--场景025-->
+	<scene name="scene_025" title="025" onstart="" thumburl="panos/025.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/025.tiles/preview.jpg" />
+
+		<image style = "025_STYLE">
+			<cube url="panos/025.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+			<depthmap url="models/pano025.stl" enabled="true" rendermode="3dmodel" scale="100"/>
+		</image>
+
+
+
+	<!--热点管理-->
+			<!--返回21-->
+				<hotspot
+      				name="spot1" ath="131.361" atv="35.288"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="tour3d_loadscene(scene_021)"
+					zorder="100"
+					linkedscene="scene_021"
+					text="返回"
+    			/>
+			<!--前进30-->
+				<hotspot
+      				name="spot2" ath="-47.485" atv="32.821"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene(scene_030,-5.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_030"
+					text="前进"
+    			/>
+			<!--图文介绍：佛像上-->
+				<hotspot
+      				name="spot3" ath="13.54" atv="11.614"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/佛像上.png'););"
+					
+    			/>
+			<!--图文介绍：佛像下-->
+				<hotspot
+      				name="spot4" ath="50.05" atv="14.011"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/佛像下.png'););"
+					
+    			/>
+			<!--讲解员-->
+				<hotspot
+      				name="spot521" ath="-39.449" atv="8.168"
+      				url="skin/日和.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.15"
+					onclick="playsound(bgtour, '%VIEWER%/sound/犍陀罗艺术.mp3', 1);"
+    			/>
+				<action name="bgsnd_action" autorun="onstart">
+					playsound(bgtour, '%VIEWER%/sound/犍陀罗艺术.mp3', 1);
+				</action>
+
+	</scene>
+	
+<!--场景030-->
+	<scene name="scene_030" title="030" onstart="" thumburl="panos/030.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/030.tiles/preview.jpg" />
+
+		<image style = "030_STYLE">
+			<cube url="panos/030.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+			<depthmap url="models/pano030.stl" enabled="true" rendermode="3dmodel" scale="100"/>
+		</image>
+
+
+		<!--热点管理-->
+			<!--返回25-->
+				<hotspot
+      				name="spot1" ath="104.353" atv="32.463"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_025',-5.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_025"
+					text="返回"
+    			/>
+			<!--前进33-->
+				<hotspot
+      				name="spot2" ath="-158.286" atv="20.208"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_033')"
+					zorder="100"
+					linkedscene="scene_033"
+					text="前进"
+    			/>
+			<!--图文介绍：骏马-->
+				<hotspot
+      				name="spot3" ath="55.772" atv="0.291"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/骏马.png'););"
+					
+    			/>
+			<!--讲解员-->
+				<hotspot
+      				name="spot521" ath="-52.864" atv="19.346"
+      				url="skin/日和.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="playsound(bgtour, '%VIEWER%/sound/骏马增大.mp3', 1);"
+    			/>
+				<action name="bgsnd_action" autorun="onstart">
+					playsound(bgtour, '%VIEWER%/sound/骏马增大.mp3', 1);
+				</action>
+
+	</scene>
+
+
+<!--场景033-->
+	<scene name="scene_033" title="033" onstart="" thumburl="panos/033.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/033.tiles/preview.jpg" />
+
+		<image >
+			<cube url="panos/033.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+		</image>
+
+		<!--热点管理-->
+			<!--返回30 onclick="skin_gotoscene('scene_030',15.6,0,3.6)"-->
+				<hotspot
+      				name="spot1" ath="-23.924" atv="24.97"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					linkedscene="scene_030"
+					onclick="tour3d_loadscene(scene_030)"
+					zorder="100"
+					text="返回"
+    			/>
+			<!--前进35 onclick="skin_gotoscene('scene_035',15.6,0,3.6)"-->
+				<hotspot
+      				name="spot2" ath="142.744" atv="20.073"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					linkedscene="scene_035"					
+					onclick="tour3d_loadscene(scene_035)"
+					zorder="100"
+					
+					text="前进"
+    			/>
+			<!--图文介绍：梅尔加赫-->
+				<hotspot
+      				name="spot3" ath="-160.612" atv="-15.668"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/梅尔加赫.png'););"
+					
+    			/>
+			<!--图文介绍：巴陶-->
+				<hotspot
+      				name="spot4" ath="-157.138" atv="1.531"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/巴陶.png'););"
+					
+    			/>
+			<!--讲解员-->
+				<hotspot
+      				name="spot521" ath="49.624" atv="25.128"
+      				url="skin/日和.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="playsound(bgtour, '%VIEWER%/sound/梅尔加赫.mp3', 1);"
+    			/>
+				<action name="bgsnd_action" autorun="onstart">
+					playsound(bgtour, '%VIEWER%/sound/梅尔加赫.mp3', 1);
+				</action>
+	</scene>
+
+
+<!--场景035-->
+
+	<scene name="scene_035" title="035" onstart="" thumburl="panos/035.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/035.tiles/preview.jpg" />
+
+		<image style = "035_STYLE">
+			<cube url="panos/035.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+			<depthmap url="models/pano035.stl" enabled="true" rendermode="3dmodel" scale="100"/>
+		</image>
+
+
+
+		<!--热点管理-->
+			<!--返回33-->
+				<hotspot
+      				name="spot1" ath="-63.15" atv="29.555"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					linkedscene="scene_033"
+					onclick="skin_gotoscene('scene_033',5.6,0,15.6)"
+					zorder="100"
+					text="返回"
+    			/>
+			<!--前进39-->
+				<hotspot
+      				name="spot2" ath="85.808" atv="25.451"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					linkedscene="scene_039"
+					onclick="skin_gotoscene('scene_039',5.6,0,15.6)"
+					zorder="100"
+					text="前进"
+    			/>
+			<!--图文介绍：梅尔加赫-->
+				<hotspot
+      				name="spot3" ath="-105.686" atv="-13.521"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/梅尔加赫.png'););"
+					
+    			/>
+			<!--图文介绍：巴陶-->
+				<hotspot
+      				name="spot4" ath="-105.506" atv="2.167"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.3"
+					onclick="js(openImage('./images/巴陶.png'););"
+					
+    			/>
+			<!--讲解员-->
+				<hotspot
+      				name="spot521" ath="49.624" atv="25.128"
+      				url="skin/日和.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="playsound(bgtour, '%VIEWER%/sound/梅尔加赫.mp3', 1);"
+    			/>
+
+				<action name="bgsnd_action" autorun="onstart">
+					playsound(bgtour, '%VIEWER%/sound/梅尔加赫.mp3', 1);
+				</action>	
+	</scene>
+
+
+
+<!--场景039-->
+	<scene name="scene_039" title="039" onstart="" thumburl="panos/039.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/039.tiles/preview.jpg" />
+
+		<image style = "039_STYLE">
+			<cube url="panos/039.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+			<depthmap url="models/pano039.stl" enabled="true" rendermode="3dmodel" scale="100"/>
+		</image>
+
+
+
+
+		<!--热点管理-->
+			<!--返回35-->
+				<hotspot
+      				name="spot1" ath="-57.869" atv="36.864"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="tour3d_loadscene(scene_035)"
+					zorder="100"
+					linkedscene="scene_035"
+					text="返回"
+    			/>
+			<!--前进42-->
+				<hotspot
+      				name="spot2" ath="36.068" atv="32.214"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_042',15.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_042"
+					text="前进"
+    			/>
+			<!--讲解员-->
+				<hotspot
+      				name="spot521" ath="105.809" atv="11.841"
+      				url="skin/日和.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.2"
+					onclick="playsound(bgtour, '%VIEWER%/sound/游览增大.mp3', 1);"
+    			/>
+				<action name="bgsnd_action" autorun="onstart">
+					playsound(bgtour, '%VIEWER%/sound/游览增大.mp3', 1);
+				</action>	
+
+	</scene>
+
+
+<!--场景042-->
+	<scene name="scene_042" title="042" onstart="" thumburl="panos/042.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/042.tiles/preview.jpg" />
+
+		<image style = "042_STYLE">
+			<cube url="panos/042.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+			<depthmap url="models/pano042.stl" enabled="true" rendermode="3dmodel" scale="100"/>
+		</image>
+
+
+		<!--热点管理-->
+			<!--返回39-->
+				<hotspot
+      				name="spot1" ath="-54.036" atv="26.213"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_039',15.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_039"
+					text="返回"
+    			/>
+			<!--前进45-->
+				<hotspot
+      				name="spot2" ath="25.093" atv="26.633"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_045',1.6,0,1.6)"
+					zorder="100"
+					linkedscene="scene_045"
+					text="前进"
+    			/>
+			<!--讲解员-->
+				<hotspot
+      				name="spot521" ath="48.809" atv="11.841"
+      				url="skin/日和.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.2"
+					onclick="playsound(bgtour, '%VIEWER%/sound/游览增大.mp3', 1);"
+    			/>
+				<action name="bgsnd_action" autorun="onstart">
+					playsound(bgtour, '%VIEWER%/sound/游览增大.mp3', 1);
+				</action>
+	</scene>
+
+
+
+<!--场景045-->
+	<scene name="scene_045" title="045" onstart="" thumburl="panos/045.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/045.tiles/preview.jpg" />
+
+		<image style = "045_STYLE">
+			<cube url="panos/045.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+			<depthmap url="models/pano045.stl" enabled="true" rendermode="3dmodel" scale="100"/>
+		</image>
+
+
+		<!--热点管理-->
+			<!--返回42-->
+				<hotspot
+      				name="spot1" ath="-140.192" atv="31.893"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene(scene_042,25.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_042"
+					text="返回"
+    			/>
+			<!--前进47-->
+				<hotspot
+      				name="spot2" ath="93.273" atv="28.211"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_047',0.6,0,0.6)"
+					zorder="100"
+					linkedscene="scene_047"
+					text="前进"
+    			/>
+			<!--讲解员-->
+				<hotspot
+      				name="spot521" ath="48.809" atv="11.841"
+      				url="skin/日和.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.2"
+					onclick="playsound(bgtour, '%VIEWER%/sound/游览增大.mp3', 1);"
+    			/>
+				<action name="bgsnd_action" autorun="onstart">
+					playsound(bgtour, '%VIEWER%/sound/游览增大.mp3', 1);
+				</action>
+	</scene>
+
+
+<!--场景047-->
+	<scene name="scene_047" title="047" onstart="" thumburl="panos/047.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/047.tiles/preview.jpg" />
+
+		<image style = "047_STYLE">
+			<cube url="panos/047.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+			<depthmap url="models/pano047.stl" enabled="true" rendermode="3dmodel" scale="100"/>
+		</image>
+
+
+		<!--热点管理-->
+			<!--返回45-->
+				<hotspot
+      				name="spot1" ath="39.934" atv="27.795"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_045',15.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_045"
+					text="返回"
+    			/>
+			<!--前进49-->
+				<hotspot
+      				name="spot2" ath="-55.961" atv="29.182"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_049',0.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_049"
+					text="前进"
+    			/>
+			<!--图文介绍：大事记-->
+				<hotspot
+      				name="spot3" ath="-4.155" atv="-6.381"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/大事记.png'););"
+					
+    			/>
+			<!--讲解员-->
+				<hotspot
+      				name="spot521" ath="-31.233" atv="20.608"
+      				url="skin/日和.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.3"
+					onclick="playsound(bgtour, '%VIEWER%/sound/塔克西拉大事记增大.mp3', 1);"
+    			/>
+				<action name="bgsnd_action" autorun="onstart">
+					playsound(bgtour, '%VIEWER%/sound/塔克西拉大事记增大.mp3', 1);
+				</action>
+	</scene>
+
+<!--场景049-->
+	<scene name="scene_049" title="049" onstart="" thumburl="panos/049.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/049.tiles/preview.jpg" />
+
+		<image style = "049_STYLE">
+			<cube url="panos/049.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+			<depthmap url="models/pano049.stl" enabled="true" rendermode="3dmodel" scale="100"/>
+		</image>
+
+		<!--热点管理-->
+			<!--返回47-->
+				<hotspot
+      				name="spot1" ath="100.555" atv="30.605"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_047',15.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_047"
+					text="返回"
+    			/>
+			<!--前进50-->
+				<hotspot
+      				name="spot2" ath="-114.012" atv="32.279"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_050',5.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_050"
+					text="前进"
+    			/>
+			<!--图文介绍：合金印章-->
+				<hotspot
+      				name="spot3" ath="45.804" atv="-16.078"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/合金印章.png'););"
+					
+    			/>
+			<!--图文介绍：文字印-->
+				<hotspot
+      				name="spot4" ath="-29.107" atv="-18.746"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/文字印.png'););"
+					
+    			/>
+			<!--图文介绍：展柜1-->
+				<hotspot
+      				name="spot5" ath="67.05" atv="20.896"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/展柜右.jpg'););"
+					
+    			/>
+			<!--图文介绍：展柜2-->
+				<hotspot
+      				name="spot6" ath="-58.345" atv="25.492"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.4"
+					onclick="js(openImage('./images/展柜左.jpg'););"
+					
+    			/>
+				<action name="bgsnd_action" autorun="onstart">
+						playsound(bgtour, '%VIEWER%/sound/印章.mp3', 1);
+				</action>
+
+			<!--讲解员-->
+				<hotspot
+      				name="spot521" ath="-95.344" atv="11.444"
+      				url="skin/日和.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.2"
+					onclick="playsound(bgtour, '%VIEWER%/sound/印章增大.mp3', 1);"
+    			/>
+
+	</scene>
+
+
+<!--场景050-->
+	<scene name="scene_050" title="050" onstart="" thumburl="panos/050.tiles/thumb.jpg" lat="" lng="" alt="" heading="">
+		
+		<control bouncinglimits="calc:image.cube ? true : false" />
+
+		<view hlookat="0.0" vlookat="0.0" fovtype="MFOV" fov="120" maxpixelzoom="2.0" fovmin="70" fovmax="140" limitview="auto" />
+
+		<preview url="panos/050.tiles/preview.jpg" />
+
+		<image style = "050_STYLE">
+			<cube url="panos/050.tiles/%s/l%l/%v/l%l_%s_%v_%h.jpg" multires="512,1024,2048,3840" />
+			<depthmap url="models/pano050.stl" enabled="true" rendermode="3dmodel" scale="100"/>
+		</image>
+
+
+		<!--热点管理-->
+			<!--返回49-->
+				<hotspot
+      				name="spot1" ath="100.149" atv="33.049"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_049',15.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_049"
+					text="返回"
+    			/>
+			<!--前进14-->
+				<hotspot
+      				name="spot2" ath="-88.37" atv="35.418"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_014',1.6,0,3.6)"
+					zorder="100"
+					linkedscene="scene_014"
+					text="前进"
+    			/>
+			<!--前进17-->
+				<hotspot
+      				name="spot6" ath="178.874" atv="33.559"
+      				url="skin/vtourskin_hotspot.png"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;float_animation"
+					zoom="true"
+					scale="0.7"
+					onclick="skin_gotoscene('scene_017')"
+					text="前进"
+    			/>
+			<!--图文介绍：合金印章-->
+				<hotspot
+      				name="spot3" ath="72.156" atv="-8.651"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.2"
+					onclick="js(openImage('./images/合金印章.png'););"
+					
+    			/>
+			<!--图文介绍：文字印-->
+				<hotspot
+      				name="spot4" ath="38.315" atv="-12.349"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.3"
+					onclick="js(openImage('./images/文字印.png'););"
+					
+    			/>
+			<!--图文介绍：展柜2-->
+				<hotspot
+      				name="spot5" ath="43.184" atv="23.58"
+      				url="skin/pic.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.3"
+					onclick="js(openImage('./images/展柜左.jpg'););"
+					
+    			/>
+			<!--讲解员-->
+				<hotspot
+      				name="spot521" ath="-49.487" atv="20.946"
+      				url="skin/日和.gif"
+					onloaded="do_crop_animation(128,128, 15);add_all_the_time_tooltip;"
+					zoom="true"
+					scale="0.3"
+					onclick="playsound(bgtour, '%VIEWER%/sound/印章增大.mp3', 1);"
+    			/>
+				<action name="bgsnd_action" autorun="onstart">
+					playsound(bgtour, '%VIEWER%/sound/印章增大.mp3', 1);
+				</action>
+	</scene>
+
+
+</krpano>

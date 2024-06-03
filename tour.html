@@ -1,0 +1,341 @@
+﻿<!--
+ * @Author: 懒羊羊 20009201322@xidian.edu.cn
+ * @Date: 2024-05-02 22:57:28
+ * @LastEditors: 懒羊羊 20009201322@xidian.edu.cn
+ * @LastEditTime: 2024-05-27 22:09:03
+ * @FilePath: \vtour\tour.html
+ * @Description: 
+ * 
+ * Copyright (c) 2024 by ${git_name_email}, All Rights Reserved. 
+-->
+<!DOCTYPE html>
+<html>
+<head>
+	<!--图片展示-->
+	<script src="js/viewer.js"></script>
+	<!--视频展示
+		<script src="js/video.js"></script>
+	-->
+	
+
+	<title>MyMuseum</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, viewport-fit=cover" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	<meta name="mobile-web-app-capable" content="yes" />
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+	<meta http-equiv="x-ua-compatible" content="IE=edge" />
+	<style>
+		html { height:100%; }
+		body { height:100%; overflow:hidden; margin:0; padding:0; font-family:Arial, Helvetica, sans-serif; font-size:16px; color:#FFFFFF; background-color:#000000; }
+	</style>
+	<!-- 图片预览使用 -->
+	<link rel="stylesheet" href="css/viewer.css" />
+	<!-- 视频预览使用 -->
+	<style>
+		.modal {
+		  position: fixed;
+		  top: 500px;
+		  left: 900px;
+		  scale: 1.2;
+		  transform: translate(-50%, -50%);
+		  background-color: rgba(0, 0, 0, 0.5); 
+		  padding: 30px;
+		  padding-top: 15px;
+		  padding-bottom: 20px;
+		  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+		  border-radius: 40px;
+		  z-index: 999;
+		  display: none;
+		}
+
+		.body {
+			position:fixed;
+            top: 0;
+            left: 0;
+		    width:100%;
+		    height:100%;
+            min-width: 1000px;
+            background: url(./images/start.jpg);/*图片路径*/
+            background-repeat: no-repeat;
+            background-size: cover;
+            -webkit-background-size: cover;
+            -o-background-size: cover;
+            background-position: center 0;
+			display: block;
+			pointer-events: none;
+		}
+
+		.body.fadeout{
+ 			-webkit-transition: all 1.5s;  
+ 			-moz-transition: all 1.5s;  
+ 			-ms-transition: all 1.5s;  
+ 			-o-transition: all 1.5s;  
+ 			transition: all 1.5s;  
+ 			opacity: 0;
+		}
+
+		.text1{
+  			z-index:99;
+			position: fixed; /* 将按钮固定 */
+  			bottom: 100px; /* 与底部的距离 */
+  			left: 50%; /* 水平居中 */
+  			transform: translateX(-50%); /* 使按钮水平居中 */
+		}
+		.text1>button{
+  			font-size: 24px;
+			font-family: 'STZhongsong';
+  			color:#806223;
+			border-radius: 20px;
+			border-color: rgba(255, 255, 255, 0.4);
+			padding-top: 5px;
+			padding-bottom: 8px;
+			padding-left: 25px;
+			padding-right: 25px;
+			scale: 1.5;
+			background-color: rgba(255, 255, 255, 0.4); 
+			pointer-events: auto;
+			cursor: pointer;
+		}
+
+		.text1>button:hover {
+			background-color: rgba(255, 255, 255, 0.8); 
+      		transition: 0.5s;
+			box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
+  		}
+
+		.text1>button:active {
+			background-color: rgba(255, 255, 255, 0.4);
+  			box-shadow: 0 5px #666;
+  			transform: translateY(4px);
+		}
+
+		.text1>button.fadeout{
+ 			-webkit-transition: all 1.5s;  
+ 			-moz-transition: all 1.5s;  
+ 			-ms-transition: all 1.5s;  
+ 			-o-transition: all 1.5s;  
+ 			transition: all 1.5s;  
+ 			opacity: 0;
+		}
+
+		.topright {
+			
+ 			top: 30px;
+  			right: 50px;
+			z-index:999;
+			position: fixed; /* 将按钮固定 */
+		}
+		.topright>button{
+			cursor: pointer;
+  			font-size: 18px;
+			font-family: 'STZhongsong';
+  			color:#806223;
+			border-radius: 15px;
+			border-color: rgba(255, 255, 255, 0.4);
+			padding-top: 5px;
+			padding-bottom: 8px;
+			padding-left: 25px;
+			padding-right: 25px;
+			scale: 1.2;
+			background-color: rgba(255, 255, 255, 0.4); 
+			pointer-events: auto;
+
+		}
+
+		.topright>button:hover {
+			background-color: rgba(255, 255, 255, 0.8); 
+      		transition: 0.5s;
+			box-shadow: 0 12px 16px 0 rgba(0,0,0,0.24), 0 17px 50px 0 rgba(0,0,0,0.19);
+  		}
+
+		.topright>button:active {
+			background-color: rgba(255, 255, 255, 0.4);
+  			box-shadow: 0 5px #666;
+  			transform: translateY(4px);
+		}
+
+
+	</style>
+
+
+</head>
+
+
+<body>
+
+<script src="tour.js"></script>
+
+<div id="pano" style="width:100%;height:100%;">
+
+<!--开始 <p onclick="hide()">HELLO WORLD!</p>-->
+	<img id="bg" style="z-index: 98;" class="body" onclick="hide()">
+	<div class="text1">
+		<button id="btn" onclick="hide()" >开始<p style="font-size: 14px;margin: -5px;">Enter</p></button>	
+	</div>
+
+<!--导航菜单-->
+	<div1 class="topright" >
+		<button id="btnPlay" onclick="show()" style="display: none;">播放视频<p style="font-size: 14px;margin: -5px;">Play Video</p></button>	
+		<button id="btnClose"  onclick="closeVideo()" style="display: none;margin-top: 9.8px;">关闭视频<p style="font-size: 14px;margin: -5px;">Close Video</p></button>
+		<button id="btnMap"  onclick="showMap()" style="display: none;margin-top: 9.8px;">显示模型<p style="font-size: 14px;margin: -5px;">Show Model</p></button>
+		<button id="btnHideMap"  onclick="closeMap()" style="display: none;margin-top: 9.7px;">隐藏模型<p style="font-size: 14px;margin: -5px;">Hide Model</p></button>
+		<button id="btnPlayMusic"  onclick="playSound();" style="display: none;margin-top: 9.7px;">播放音乐<p style="font-size: 14px;margin: -5px;">Play Music</p></button>
+		<button id="btnCloseMusic"  onclick="closePlay();" style="display: none;margin-top: 9.6px;">关闭音乐<p style="font-size: 14px;margin: -5px;">Close Music</p></button>
+	</div1>
+
+
+
+
+	<noscript><table style="width:100%;height:100%;"><tr style="vertical-align:middle;"><td><div style="text-align:center;">ERROR:<br/><br/>Javascript not activated<br/><br/></div></td></tr></table></noscript>
+	<script>
+		embedpano({xml:"tour.xml", target:"pano", passQueryParameters:"startscene,startlookat"});
+
+		// 图片预览方式（krpano中调用）
+		function openImage(imgscr) {
+    		document.getElementById("hideImg").src = imgscr;
+    		var image = new Viewer(document.getElementById("hideImg"), {
+           		url: "data-original",
+    		});
+    		document.getElementById("hideImg").click();
+		}
+
+	</script>
+</div>
+
+<!--讲解视频-->
+
+<div1 id="videoBox" class="modal">
+	<video width="750px" height="450px" controls="" style="border-radius: 20px;" poster="./images/poster.png">
+	  <source src="video/introduction.mp4" type="video/mp4">
+	</video>
+</div1>
+
+<div2 id="mapBox" class="modal">
+	<img id="museumMap" width="750px" height="450px" style="z-index: 999;border-radius: 20px;" src="./images/model.png" onclick="showMap()">
+</div2>
+
+<!--音频-->
+<audio src="./sound/bgmLower.mp3" id="myaudio" controls="controls" loop="false"></audio>
+<audio src="./sound/button.mp3" id="myButton" controls="controls" loop="false"></audio>
+
+
+
+<!--弹窗-->
+<script>
+	function showTips () {
+		alert('这是一个弹窗')
+	}
+</script>
+
+
+<!-- 该img标签用于全局图片放大功能（全景场景中点击图片热点展示图片使用） -->
+<img src="" id="hideImg" style="display: none" />
+
+
+
+<script>
+
+	//按钮音频
+	function playButton(){
+		var myButton = document.getElementById('myButton');
+		myButton.play();
+	}
+
+	//音频控制
+	function playSound(){
+		var myAuto = document.getElementById('myaudio');
+        myAuto.play();
+	}
+	function closePlay() {
+        var myAuto = document.getElementById('myaudio');
+        myAuto.pause();
+        //myAuto.load();
+    }
+
+	//弹出视频
+	function playVideo(videoSrc) {
+	
+	  // 创建一个弹出框
+	  var modal = document.createElement('div');
+	  modal.className = 'modal';
+
+	  // 创建视频播放器
+	  var videoPlayer = document.createElement('video');
+	  videoPlayer.src = videoSrc;
+	  videoPlayer.controls = true;
+	  
+	  // 将视频播放器添加到弹出框中
+	  modal.appendChild(videoPlayer);
+	  
+	  // 将弹出框添加到页面中
+	  document.body.appendChild(modal);
+	}
+//控制视频热点
+	function show(){
+        var t = document.getElementById('videoBox');//选取id为videoBox的元素
+        t.style.display = 'block'; //显示视频元素
+    }
+ 
+    function closeVideo(){
+        var t = document.getElementById('videoBox');//选取id为videoBox的元素
+        t.style.display =  'none';// 隐藏视频的元素
+	}
+//控制地图热点
+	function showMap(){
+        var t = document.getElementById('mapBox');//选取id为mapBox的元素
+        t.style.display = 'block'; //显示模型元素
+    }
+ 
+    function closeMap(){
+        var t = document.getElementById('mapBox');//选取id为mapBox的元素
+        t.style.display =  'none';// 隐藏模型的元素
+	}
+
+//GUI control fadeout
+
+function hide(){
+        var t = document.getElementById('bg');//选取id为bg的元素
+        // 隐藏开始的背景图片
+		t.className = "body fadeout";
+
+		var btn = document.getElementById('btn');//选取id为btn的元素
+        // 隐藏开始的按钮
+		btn.className = "text1>button fadeout";
+
+		// 显示菜单的元素“播放视频”
+		var btnPlay = document.getElementById('btnPlay');//选取id为btnPlay的元素
+		btnPlay.style.display = 'block';
+
+        // 显示菜单的元素“关闭视频”
+		var btnClose = document.getElementById('btnClose');//选取id为btnClose的元素
+		btnClose.style.display = 'block';
+
+        // 显示菜单的元素“显示模型”
+		var btnMap = document.getElementById('btnMap');//选取id为btnMap的元素
+		btnMap.style.display = 'block';
+		
+        // 显示菜单的元素“隐藏模型”
+		var btnHideMap = document.getElementById('btnHideMap');//选取id为btnHideMap的元素
+		btnHideMap.style.display = 'block';
+
+		// 显示菜单的元素“播放音乐”
+		var btnPlayMusic = document.getElementById('btnPlayMusic');//选取id为btnPlayMusic的元素
+		btnPlayMusic.style.display = 'block';
+
+        // 显示菜单的元素“关闭音乐”
+		var btnCloseMusic = document.getElementById('btnCloseMusic');//选取id为btnCloseMusic的元素
+		btnCloseMusic.style.display = 'block';
+
+		var myAuto = document.getElementById('myaudio');
+        myAuto.play();
+
+
+	}
+
+</script>
+
+
+
+</body>
+</html>
